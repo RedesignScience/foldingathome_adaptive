@@ -4,14 +4,14 @@ Scripts to run adaptive sampling on Folding@home
 To run an adaptive sampling project on Folding@home:
 1. Set up your project in the usual way (note the systems MUST be the same for adaptive sampling, note tautomers have to be the same in particular!)
 2. Additionally, in the project folder: create a `SEEDS` folder and copy in the `next_seed.py` script, changing the path in it. Add `python $home/next_state.py $results` to the `<next-gen-command>` section of the `project.xml` as the first line (before `mv -f $results/checkpointState.xml.bz2 $jobdir/state.xml.bz2`).
-3. The above have created a project where if any new seeds are present in the `SEEDS` folder, each new gen will randomly draw one of them instead of continuing the trajectory. If `SEEDS` is empty, vanilla (i.e. continue to elongate the trajectories) mode of F@h operation resumes. 
+3. The above have created a project where if any new seeds are present in the `SEEDS` folder, each new gen will randomly draw one of them instead of continuing the trajectory. If `SEEDS` is empty, vanilla (i.e. continue to elongate the trajectories) mode of F@h operation automatically resumes (i.e. this framework is 'very' asynchronous, production can always continue now matter how fast and if seeds are being produced).
 4. After some initial data has been collectd, continuously run one of the adaptive sampling scripts, using multiple threads (change number in the script, also change two paths in the main()). The folder in which the script is run must contain:
 
 * system.xml (copied from one of the RUNs, and bz2-decompressed, remember all systems must be the same!)
 * integrator.xml (as above)
 * `SEEDS` folder where new seed state.xml's will be written and copied to the `SEEDS` folder in the F@h project folder
 * `seeds_pdb` folder where pdbs of the new seeds will be written for visual inspection if desired
-* `temp` folder which is used as temporary copying location for the state.xml's due to needed sudo for file writing in the F@h project folder
+* `temp` folder which is used as temporary copying location for the features.npy due to needed sudo for file writing in the F@h data folder
 
 The script will output (in addition to the seeds as described above) on every iteration:
 * `current_dtrajs.npy` - discrete trajectories from k-means clustering of the tICA projection
