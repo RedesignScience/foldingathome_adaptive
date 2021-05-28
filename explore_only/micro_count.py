@@ -15,6 +15,17 @@ n_seeds = 50
 #select_contacts = np.load('select_contacts.npy')
 
 def calc_features(traj):
+    """Featurize data, both with features used for the explore MSM and for the exploit goal.
+    This function is used for a multiprocessing Pool.
+    Parameters
+    ----------
+    traj : string
+        Path to an XTC file.
+    Returns
+    -------
+    features : 
+        A 2D (framesxfeatures) numpy array of features
+    """
     # remove 'positions.xtc' from path
     path = traj[:-13] + 'features.npy'
     if os.path.exists(path):
@@ -30,6 +41,18 @@ def calc_features(traj):
     return features
 
 def calc_msm_counts(features):
+    """Do tICA and k-means clustering.
+    Parameters
+    ----------
+    features : list
+        List of numpy feature arrays
+    Returns
+    -------
+    counts : numpy array
+        Array of counts each microstate was seen
+    dtrajs : list
+        List of discretized trajectories
+    """
     tica = pyemma.coordinates.tica(features, lag=10, dim=5, kinetic_map=True, commute_map=False)
     tica_projection = tica.get_output()
     if len(np.concatenate(tica_projection)) > 100:
@@ -41,6 +64,29 @@ def calc_msm_counts(features):
     return counts, dtrajs
 
 def draw_seeds(goals, counts, dtrajs, n_seeds, explore_weight=0.5, truncate_prob=True, max_states=None):
+    """Calculate microstate scores, draw new seed states and random frames from them.
+    Parameters
+    ----------
+    goals : list
+        List of trajectories scored with one chosen goal feature
+    counts : numpy array
+        Array of counts each microstate was seen
+    dtrajs : list
+        List of discretized trajectories
+    n_seeds : int
+        Number of new seeds to produce
+    explore_weight : float
+        Weight of the explore part in the FAST scoring function
+    truncate_prob : bool
+        Whether to set to 0 the draw probabilities of states below 
+        a number (determined by heuristic copied from HTMD) of top scoring states
+    max_states : None or int
+        If truncate_prob, maximum number of states to retain non-zero draw probabilities
+    Returns
+    -------
+    seeds : numpy array
+        array of of [trajectory, frame] indexes of new seeds
+    """
     indexes = []
     for i,traj in enumerate(goals):
         for j,frame in enumerate(traj):
@@ -94,7 +140,17 @@ def draw_seeds(goals, counts, dtrajs, n_seeds, explore_weight=0.5, truncate_prob
     return seeds
     
 def make_seed(trajs, index, i):
-
+    """Save OpenMM state.xml file of a new seed with random new velocities.
+    This function is used for a multiprocessing Pool.
+    Parameters
+    ----------
+    trajs : list
+        List of trajectory paths
+    index : numpy array
+        [trajectory, frame] indexes of the seed
+    i : int
+        Number of the seed to write as i.xml
+    """
     seed = md.load(trajs[index[0]], top='top.pdb')[index[1]]
     seed.save('seeds_pdb/%d.pdb' % i)
     box_vectors = seed.openmm_boxes(0)
